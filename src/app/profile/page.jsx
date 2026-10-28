@@ -83,16 +83,21 @@ export default function ProfilePage() {
     // Sign Out
     const handleSignOut = async () => {
         try {
-            await signOut({
-                fetchOptions: {
-                    onSuccess: () => {
-                        router.push("/");
-                    },
-                },
-            });
-        } catch {
+            const { error } = await signOut();
+
+            if (error) {
+                toast.error(
+                    error.message || "সাইন আউট করা যায়নি। আবার চেষ্টা করুন।"
+                );
+                return;
+            }
+
+            toast.success("সাইন আউট সফল হয়েছে।");
+            router.push("/");
+            router.refresh();
+        } catch (error) {
             toast.error(
-                "সাইন আউট করা যায়নি। আবার চেষ্টা করুন।"
+                error?.message || "সাইন আউট করা যায়নি। আবার চেষ্টা করুন।"
             );
         }
     };

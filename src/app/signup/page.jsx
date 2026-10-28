@@ -68,7 +68,7 @@ export default function SignupPage() {
         setLoading(true);
 
         try {
-            const { data, error } = await signUp.email({
+            const { error } = await signUp.email({
                 name,
                 email,
                 password,
@@ -79,10 +79,8 @@ export default function SignupPage() {
                 return;
             }
 
-            if (data) {
-                toast.success("অ্যাকাউন্ট সফলভাবে তৈরি হয়েছে!");
-                router.push("/signin");
-            }
+            toast.success("অ্যাকাউন্ট সফলভাবে তৈরি হয়েছে!");
+            window.setTimeout(() => router.push("/signin"), 800);
         } catch (err) {
             setError("কিছু সমস্যা হয়েছে। আবার চেষ্টা করুন।");
         } finally {

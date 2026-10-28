@@ -144,12 +144,20 @@ export default function Navbar() {
 
     async function handleSignOut() {
         try {
-            await signOut();
+            const { error } = await signOut();
+
+            if (error) {
+                toast.error(error.message || "সাইন আউট করা যায়নি।");
+                return;
+            }
+
             setIsDropdownOpen(false);
+            toast.success("সাইন আউট সফল হয়েছে।");
             router.push("/");
             router.refresh();
         } catch (error) {
             console.error("Sign out failed:", error);
+            toast.error("সাইন আউট করা যায়নি। আবার চেষ্টা করুন।");
         }
     }
 
@@ -287,7 +295,7 @@ export default function Navbar() {
                                                 <circle cx="12" cy="8" r="4" />
                                                 <path d="M5 21a7 7 0 0 1 14 0" />
                                             </svg>
-                                            My Profile
+                                            আমার প্রোফাইল
                                         </Link>
 
                                         <button
@@ -310,7 +318,7 @@ export default function Navbar() {
                                                 <path d="M16 17l5-5-5-5" />
                                                 <path d="M21 12H9" />
                                             </svg>
-                                            Sign Out
+                                            সাইন আউট
                                         </button>
                                     </div>
                                 )}
