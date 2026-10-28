@@ -1,0 +1,129 @@
+@import "tailwindcss";
+
+:root {
+  --background: #F0F5F0;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: #F0F5F0;
+  color: #171717;
+  font-family: "Noto Sans Bengali", "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla", Arial, Helvetica, sans-serif;
+}
+
+.page-container {
+  width: 100%;
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+@media (min-width: 40rem) {
+  .page-container {
+    padding-inline: 1.5rem;
+  }
+}
+
+@media (min-width: 64rem) {
+  .page-container {
+    padding-inline: 2rem;
+  }
+}
+
+/* =========================
+   PRICE TICKER
+========================= */
+
+.price-ticker-wrapper {
+  width: 100%;
+  overflow: hidden;
+  background: #f0faf6;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.price-ticker-track {
+  display: flex;
+  width: max-content;
+  align-items: center;
+  animation: priceTickerScroll 25s linear infinite;
+  will-change: transform;
+}
+
+.price-ticker-group {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.price-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 12px 32px;
+  border-right: 1px solid #e5e7eb;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.price-icon {
+  flex-shrink: 0;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.price-name {
+  flex-shrink: 0;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.price-value {
+  flex-shrink: 0;
+  color: #4b5563;
+}
+
+.price-up {
+  flex-shrink: 0;
+  font-weight: 600;
+  color: #dc2626;
+}
+
+.price-down {
+  flex-shrink: 0;
+  font-weight: 600;
+  color: #16a34a;
+}
+
+@keyframes priceTickerScroll {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (max-width: 640px) {
+  .price-item {
+    padding: 10px 20px;
+    font-size: 13px;
+  }
+
+  .price-icon {
+    font-size: 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .price-ticker-track {
+    animation: none;
+  }
+}
