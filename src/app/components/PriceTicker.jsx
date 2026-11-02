@@ -1,49 +1,54 @@
 
 "use client";
 
-const prices = [
-    {
-        name: "চাল (মিনিকেট)",
-        price: "৬৫ টাকা/কেজি",
-        change: "২.৭%",
-        direction: "up",
-        icon: "🍚",
-    },
-    {
-        name: "তেল (সয়াবিন)",
-        price: "১৭৫ টাকা/লিটার",
-        change: "১.২%",
-        direction: "up",
-        icon: "🧴",
-    },
-    {
-        name: "পেঁয়াজ",
-        price: "৪০ টাকা/কেজি",
-        change: "০.৯%",
-        direction: "down",
-        icon: "🧅",
-    },
-    {
-        name: "টমেটো",
-        price: "৩০ টাকা/কেজি",
-        change: "৮.৬%",
-        direction: "up",
-        icon: "🍅",
-    },
-    {
-        name: "আলু",
-        price: "২৫ টাকা/কেজি",
-        change: "১.৮%",
-        direction: "down",
-        icon: "🥔",
-    },
-];
+import { useProducts } from "@/lib/useProducts";
+import {
+    toBanglaNumber,
+    getProductName,
+    getProductIcon,
+    getProductPrice,
+    getUnit,
+} from "./productMeta";
+
+const TICKER_LIMIT = 12;
+
+// হোমপেজের বাকি অংশের মতো একই API থেকে আসা সত্যিকারের দাম
+function buildTickerItems(products) {
+    return products.slice(0, TICKER_LIMIT).map((product) => {
+        const price = getProductPrice(product);
+        const pct = Number(product?.change?.pct) || 0;
+        const isUp = product?.change?.dir !== "down";
+
+        return {
+            key: product?.slug ?? product?.id,
+            name: getProductName(product),
+            icon: getProductIcon(product),
+            price:
+                price === null
+                    ? "দাম পাওয়া যায়নি"
+                    : `${toBanglaNumber(price)} টাকা/${getUnit(product?.unit)}`,
+            change: `${toBanglaNumber(Math.abs(pct).toFixed(1))}%`,
+            direction: isUp ? "up" : "down",
+        };
+    });
+}
 
 export default function PriceTicker() {
+    const { products, loading, error } = useProducts();
+
+    const items = buildTickerItems(products);
+
+    // দাম আসার আগে টিকার সম্পূর্ণ অদৃশ্য হলে নিচের কন্টেন্ট একবার সরে যাবে —
+    // তাই লোডিং-এও একই উচ্চতার স্কেলেটন দেখাও, যেন কোনো সরাসরি না হয়।
+    if (error) {
+        return null;
+    }
+
     return (
         <div
             className="price-ticker-wrapper"
             aria-label="বাজারদরের আপডেট"
+            aria-busy={loading ? "true" : undefined}
         >
             <div className="price-ticker-track">
                 {[0, 1].map((group) => (
@@ -52,32 +57,54 @@ export default function PriceTicker() {
                         key={group}
                         aria-hidden={group === 1 ? "true" : undefined}
                     >
-                        {prices.map((item) => (
-                            <div className="price-item" key={item.name}>
-                                <span className="price-icon">
-                                    {item.icon}
-                                </span>
-
-                                <span className="price-name">
-                                    {item.name}
-                                </span>
-
-                                <span className="price-value">
-                                    {item.price}
-                                </span>
-
-                                <span
-                                    className={
-                                        item.direction === "up"
-                                            ? "price-up"
-                                            : "price-down"
-                                    }
+                        {loading || items.length === 0
+                            ? Array.from({ length: 6 }).map((_, index) => (
+                                <div
+                                    className="price-item"
+                                    key={`skeleton-${index}`}
                                 >
-                                    {item.direction === "up" ? "▲" : "▼"}{" "}
-                                    {item.change}
-                                </span>
-                            </div>
-                        ))}
+                                    <span className="price-icon">🛒</span>
+
+                                    <span className="price-name price-skeleton">
+                                        &nbsp;
+                                    </span>
+
+                                    <span className="price-value price-skeleton">
+                                        &nbsp;
+                                    </span>
+                                </div>
+                            ))
+                            : items.map((item) => (
+                                <div
+                                    className="price-item"
+                                    key={`${group}-${item.key}`}
+                                >
+                                    <span className="price-icon">
+                                        {item.icon}
+                                    </span>
+
+                                    <span className="price-name">
+                                        {item.name}
+                                    </span>
+
+                                    <span className="price-value">
+                                        {item.price}
+                                    </span>
+
+                                    <span
+                                        className={
+                                            item.direction === "up"
+                                                ? "price-up"
+                                                : "price-down"
+                                        }
+                                    >
+                                        {item.direction === "up"
+                                            ? "▲"
+                                            : "▼"}{" "}
+                                        {item.change}
+                                    </span>
+                                </div>
+                            ))}
                     </div>
                 ))}
             </div>

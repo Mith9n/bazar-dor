@@ -1,116 +1,23 @@
 
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { toBanglaNumber } from "../../components/priceUtils";
+import { useProduct } from "@/lib/useProducts";
+import {
+    toBanglaNumber,
+    getProductIcon,
+    getUnit,
+    formatPrice,
+} from "../../components/productMeta";
 import ProductAuthGuard from "../../components/ProductAuthGuard";
-
-const API_URL = "/api/products";
-
-// পণ্যের নিজস্ব emoji
-function getProductIcon(product) {
-    const name = String(product?.nameBn || product?.name || "").trim();
-
-    if (name.includes("আদা")) return "🫚";
-    if (name.includes("পেঁয়াজ") || name.includes("পেঁয়াজ")) return "🧅";
-    if (name.includes("আলু")) return "🥔";
-    if (name.includes("রসুন")) return "🧄";
-    if (name.includes("টমেটো")) return "🍅";
-    if (name.includes("বেগুন")) return "🍆";
-    if (name.includes("মরিচ")) return "🌶️";
-    if (name.includes("লেবু")) return "🍋";
-    if (name.includes("কলা")) return "🍌";
-    if (name.includes("মাছ")) return "🐟";
-    if (name.includes("ডিম")) return "🥚";
-    if (name.includes("মুরগি")) return "🍗";
-    if (name.includes("গরুর মাংস")) return "🥩";
-    if (product?.category === "dal") return "🌾";
-
-    if (typeof product?.image === "string" && product.image.trim()) {
-        return product.image.trim();
-    }
-
-    const categoryIcons = {
-        chal: "🍚",
-        dal: "🌾",
-        tel: "🧴",
-        sobji: "🥬",
-        mach: "🐟",
-        mangsho: "🍗",
-        mosla: "🌶️",
-        dim: "🥚",
-    };
-
-    return categoryIcons[product?.category] || "🛒";
-}
 
 function ProductDetails() {
     const params = useParams();
     const slug = params?.slug;
 
-    const [product, setProduct] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
-
-    useEffect(() => {
-        if (!slug) return;
-
-        const controller = new AbortController();
-
-        async function fetchProduct() {
-            try {
-                setLoading(true);
-                setError("");
-
-                const response = await fetch(API_URL, {
-                    signal: controller.signal,
-                    cache: "no-store",
-                });
-
-                if (!response.ok) {
-                    throw new Error("পণ্যের তথ্য লোড করা যায়নি।");
-                }
-
-                const result = await response.json();
-
-                const products = Array.isArray(result)
-                    ? result
-                    : Array.isArray(result?.products)
-                        ? result.products
-                        : Array.isArray(result?.data)
-                            ? result.data
-                            : Array.isArray(result?.data?.products)
-                                ? result.data.products
-                                : [];
-
-                const foundProduct = products.find(
-                    (item) =>
-                        String(item.slug).toLowerCase() ===
-                        String(slug).toLowerCase()
-                );
-
-                if (!foundProduct) {
-                    throw new Error("এই পণ্যটি খুঁজে পাওয়া যায়নি।");
-                }
-
-                setProduct(foundProduct);
-            } catch (err) {
-                if (err.name !== "AbortError") {
-                    setError(err.message || "আবার চেষ্টা করো।");
-                }
-            } finally {
-                if (!controller.signal.aborted) {
-                    setLoading(false);
-                }
-            }
-        }
-
-        fetchProduct();
-
-        return () => controller.abort();
-    }, [slug]);
+    const { product, loading, error } = useProduct(slug);
 
     if (loading) {
         return (
@@ -152,7 +59,7 @@ function ProductDetails() {
     const yesterday = Number(product.yesterday ?? 0);
     const lastWeek = Number(product.lastWeek ?? 0);
     const lastMonth = Number(product.lastMonth ?? 0);
-    const unit = product.unit || "kg";
+    const unit = getUnit(product.unit);
 
     const markets = Array.isArray(product.markets)
         ? product.markets
@@ -186,9 +93,6 @@ function ProductDetails() {
     const isUp =
         product.change?.dir === "up" ||
         (product.change?.dir !== "down" && today > yesterday);
-
-    const formatPrice = (price) =>
-        `${toBanglaNumber(Math.round(price))} ৳`;
 
     return (
         <main className="page-container min-h-screen bg-[#F0F5F0] py-8 sm:py-12">
@@ -237,8 +141,8 @@ function ProductDetails() {
 
                         <div
                             className={`rounded-2xl border p-6 ${isUp
-                                    ? "border-red-100 bg-red-50"
-                                    : "border-blue-100 bg-blue-50"
+                                ? "border-red-100 bg-red-50"
+                                : "border-blue-100 bg-blue-50"
                                 }`}
                         >
                             <p className="text-sm font-medium text-gray-600">

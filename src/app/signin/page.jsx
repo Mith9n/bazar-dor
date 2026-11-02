@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { signIn } from "@/lib/auth-client";
+import { signIn, getCallbackURL } from "@/lib/auth-client";
+import CallbackLink from "../components/CallbackLink";
 import toast from "react-hot-toast";
 import { Eye, EyeOff } from "lucide-react";
 
@@ -81,7 +81,7 @@ export default function SignInPage() {
 
             if (data) {
                 toast.success("লগইন সফল হয়েছে!");
-                router.push("/");
+                router.push(getCallbackURL("/"));
                 router.refresh();
             }
         } catch (err) {
@@ -98,7 +98,7 @@ export default function SignInPage() {
         try {
             await signIn.social({
                 provider,
-                callbackURL: "/",
+                callbackURL: getCallbackURL("/"),
             });
         } catch (err) {
             setError("Social login failed. Please try again.");
@@ -247,12 +247,12 @@ export default function SignInPage() {
 
                     <p className="text-center text-sm text-gray-500 mt-7">
                        অ্যাকাউন্ট নেই?{" "}
-                        <Link
+                        <CallbackLink
                             href="/signup"
                             className="font-semibold text-green-600 hover:text-green-700"
                         >
                         সাইন আপ করুন
-                        </Link>
+                        </CallbackLink>
                     </p>
                 </div>
             </div>

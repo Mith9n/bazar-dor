@@ -1,12 +1,11 @@
 
-import { NextResponse, connection } from "next/server";
+import { NextResponse } from "next/server";
+import { unstable_rethrow } from "next/navigation";
 import { headers } from "next/headers";
 import { ObjectId } from "mongodb";
 import { auth, database } from "@/lib/auth";
 
 export async function GET() {
-    await connection();
-
     try {
         const session = await auth.api.getSession({
             headers: await headers(),
@@ -73,6 +72,9 @@ export async function GET() {
             }
         );
     } catch (error) {
+        // Next.js-এর নিজস্ব প্রিরেন্ডার সিগন্যাল ধরে রাখা যাবে না
+        unstable_rethrow(error);
+
         console.error("GitHub avatar error:", error);
 
         return NextResponse.json(

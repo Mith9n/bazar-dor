@@ -101,6 +101,31 @@ body {
   color: #16a34a;
 }
 
+/* দাম আসার আগের স্কেলেটন — টিকারের উচ্চতা ঠিক রাখে */
+.price-skeleton {
+  display: inline-block;
+  min-width: 5rem;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    #e5e7eb 25%,
+    #f3f4f6 50%,
+    #e5e7eb 75%
+  );
+  background-size: 200% 100%;
+  animation: priceSkeletonPulse 1.4s ease infinite;
+}
+
+@keyframes priceSkeletonPulse {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}
+
 @keyframes priceTickerScroll {
   from {
     transform: translateX(0);
@@ -124,6 +149,10 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .price-ticker-track {
+    animation: none;
+  }
+
+  .price-skeleton {
     animation: none;
   }
 }

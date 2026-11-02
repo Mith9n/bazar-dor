@@ -4,36 +4,81 @@
 import { Suspense, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { toBanglaNumber } from "../../components/priceUtils";
+import {
+    toBanglaNumber,
+    getProductSlug,
+    getProductName,
+    getProductIcon,
+    getProductPrice,
+} from "../../components/productMeta";
 
 const API_BASE = "/api/products";
 
-const categoryInfo = {
-    chal: { name: "চাল", icon: "🍚", apiSlug: "chal" },
-    dal: { name: "ডাল", icon: "🌾", apiSlug: "dal" },
-    tel: { name: "তেল", icon: "🧴", apiSlug: "tel" },
-    sobji: { name: "সবজি", icon: "🥬", apiSlug: "sobji" },
-    mach: { name: "মাছ", icon: "🐟", apiSlug: "mach" },
-    mangsho: { name: "মাংস", icon: "🍗", apiSlug: "mangsho" },
-    "dim-dui": { name: "ডিম-দুধ", icon: "🥚", apiSlug: "dim-dui" },
-    dim: { name: "ডিম-দুধ", icon: "🥚", apiSlug: "dim-dui" },
-    mosla: { name: "মসলা", icon: "🌶️", apiSlug: "mosla" },
+// API-তে "dim-dui", কিন্তু পুরনো লিংকে "dim" আসতে পারে
+const SLUG_ALIASES = {
+    dim: "dim-dui",
+};
+
+// ক্যাটাগরি API ডাউন থাকলে যেন পাতা ভাঙে না — তখন এটা ব্যবহার হবে
+const FALLBACK_CATEGORIES = {
+    chal: { nameBn: "চাল", icon: "🍚" },
+    dal: { nameBn: "ডাল", icon: "🌾" },
+    tel: { nameBn: "তেল", icon: "🧴" },
+    sobji: { nameBn: "সবজি", icon: "🥬" },
+    mach: { nameBn: "মাছ", icon: "🐟" },
+    mangsho: { nameBn: "মাংস", icon: "🍗" },
+    "dim-dui": { nameBn: "ডিম-দুধ", icon: "🥚" },
+    dim: { nameBn: "ডিম-দুধ", icon: "🥚" },
+    mosla: { nameBn: "মসলা", icon: "🌶️" },
 };
 
 function CategoryContent() {
     const params = useParams();
     const slug = params?.slug;
-    const category = categoryInfo[slug];
 
-    const categorySlug = category?.apiSlug || slug;
+    const resolvedSlug = SLUG_ALIASES[slug] || slug;
 
+    const [categories, setCategories] = useState(null);
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [sort, setSort] = useState("default");
     const [error, setError] = useState(false);
 
+    // ক্যাটাগরির নাম ও আইকন আনো (API থেকে, না হলে ফলব্যাক)
     useEffect(() => {
-        if (!categorySlug) return;
+        let active = true;
+
+        async function loadCategories() {
+            try {
+                const response = await fetch("/api/categories", {
+                    cache: "no-store",
+                });
+
+                if (!response.ok) {
+                    throw new Error("Categories fetch failed");
+                }
+
+                const data = await response.json();
+
+                if (active && Array.isArray(data)) {
+                    setCategories(data);
+                }
+            } catch (err) {
+                console.error("Category info error:", err);
+                // categories ফাঁকা থাকলে ফলব্যাক দিয়ে চলবে
+            }
+        }
+
+        loadCategories();
+
+        return () => {
+            active = false;
+        };
+    }, []);
+
+    // পণ্য আনো
+    useEffect(() => {
+        if (!resolvedSlug) return;
 
         let active = true;
 
@@ -43,7 +88,7 @@ function CategoryContent() {
 
             try {
                 const response = await fetch(
-                    `${API_BASE}?category=${encodeURIComponent(categorySlug)}`,
+                    `${API_BASE}?category=${encodeURIComponent(resolvedSlug)}`,
                     { cache: "no-store" }
                 );
 
@@ -79,7 +124,21 @@ function CategoryContent() {
         return () => {
             active = false;
         };
-    }, [categorySlug]);
+    }, [resolvedSlug]);
+
+    // API-তে থাকলে সেটা, না হলে ফলব্যাক
+    const apiCategory = Array.isArray(categories)
+        ? categories.find((item) => item.slug === resolvedSlug)
+        : null;
+
+    const category = apiCategory
+        ? {
+            name: apiCategory.nameBn || apiCategory.name,
+            icon: apiCategory.icon || "🛒",
+        }
+        : FALLBACK_CATEGORIES[resolvedSlug] ||
+        FALLBACK_CATEGORIES[slug] ||
+        null;
 
     const sortedProducts = [...products].sort((a, b) => {
         const priceA = Number(a.today) || 0;
@@ -211,14 +270,12 @@ function CategoryContent() {
                     <div className="mt-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                         {sortedProducts.map((product, index) => {
                             const direction = product.change?.dir;
-                            const productSlug = product.slug || product.id;
-
+                            const productSlug = getProductSlug(product);
+                            const price = getProductPrice(product);
                             const unitName =
                                 product.unit === "kg"
                                     ? "কেজি"
-                                    : ["liter", "litre"].includes(
-                                        product.unit
-                                    )
+                                    : ["liter", "litre"].includes(product.unit)
                                         ? "লিটার"
                                         : product.unit === "dozen"
                                             ? "ডজন"
@@ -229,20 +286,20 @@ function CategoryContent() {
                             return (
                                 <Link
                                     key={product.id || product.slug || index}
-                                    href={`/product/${productSlug}`}
+                                    href={productSlug ? `/product/${productSlug}` : "#"}
                                     className="group rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md"
                                 >
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-green-50 text-3xl">
-                                            {category.icon}
+                                            {getProductIcon(product)}
                                         </div>
 
                                         <span
                                             className={`rounded-full px-3 py-1 text-xs font-semibold ${direction === "up"
-                                                    ? "bg-red-50 text-red-600"
-                                                    : direction === "down"
-                                                        ? "bg-green-50 text-green-700"
-                                                        : "bg-gray-100 text-gray-500"
+                                                ? "bg-red-50 text-red-600"
+                                                : direction === "down"
+                                                    ? "bg-green-50 text-green-700"
+                                                    : "bg-gray-100 text-gray-500"
                                                 }`}
                                         >
                                             {direction === "up"
@@ -254,7 +311,7 @@ function CategoryContent() {
                                     </div>
 
                                     <h2 className="mt-4 text-lg font-bold text-gray-900 group-hover:text-green-700">
-                                        {product.nameBn || product.name || "পণ্যের নাম নেই"}
+                                        {getProductName(product)}
                                     </h2>
 
                                     <p className="mt-1 text-sm text-gray-500">
@@ -268,7 +325,9 @@ function CategoryContent() {
                                             </p>
 
                                             <p className="mt-1 text-2xl font-bold text-gray-900">
-                                                {toBanglaNumber(product.today)} টাকা
+                                                {price === null
+                                                    ? "দাম নেই"
+                                                    : `${toBanglaNumber(price)} টাকা`}
                                             </p>
                                         </div>
 

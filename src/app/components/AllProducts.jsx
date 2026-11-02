@@ -1,189 +1,25 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { toBanglaNumber, getProductSlug } from "./priceUtils";
+import { useProducts } from "@/lib/useProducts";
+import {
+    toBanglaNumber,
+    getProductSlug,
+    getProductName,
+    getProductIcon,
+    getProductPrice,
+    getUnit,
+} from "./productMeta";
 
-const API_URL = "/api/products";
-
-// Category অনুযায়ী Emoji
-const CATEGORY_ICONS = {
-    chal: "🍚",
-    dal: "🌾",
-    tel: "🧴",
-    sobji: "🥬",
-    mach: "🐟",
-    mangsho: "🍗",
-    "dim-dui": "🥚",
-    mosla: "🌶️",
-};
-
-// Product অনুযায়ী আলাদা Emoji
-const PRODUCT_ICONS = {
-    peyaj: "🧅",
-    begun: "🍆",
-    ada: "🌿",
-    roshun: "🧄",
-    alu: "🥔",
-    "kaccha-moric": "🌶️",
-
-    "rui-mach": "🐟",
-    "ilish-mach": "🐠",
-    "katla-mach": "🐟",
-    "chingri-mach": "🦐",
-
-    "goru-r-mangsho": "🥩",
-    "khasir-mangsho": "🍖",
-    "hanser-mangsho": "🦆",
-    "murgi-r-mangsho": "🍗",
-
-    dim: "🥚",
-    "dui-dudh": "🥛",
-    doi: "🥣",
-    mokhhan: "🧈",
-
-    "sorno-machi-chal": "🍚",
-    "miniket-chal": "🍚",
-    "nazir-chal": "🍚",
-    "batam-size-chal": "🍚",
-
-    "mosur-dal": "🌾",
-    "mug-dal": "🌾",
-    "chola-dal": "🌾",
-    "aman-dal-khosasila": "🌾",
-
-    "sorishar-tel": "🧴",
-    "pam-tel": "🧴",
-    "ghani-banga-sorishar-tel": "🧴",
-
-    "morich-gunda": "🌶️",
-    "dhanepata-gunda": "🌿",
-};
-
-// Product name
-function getProductName(product) {
-    return (
-        product?.nameBn ||
-        product?.name ||
-        product?.title ||
-        "পণ্য"
-    );
-}
-
-// Product slug অনুযায়ী Emoji
-function getProductIcon(product) {
-    const slug = String(product?.slug || "")
-        .trim()
-        .toLowerCase();
-
-    if (PRODUCT_ICONS[slug]) {
-        return PRODUCT_ICONS[slug];
-    }
-
-    const category = String(product?.category || "")
-        .trim()
-        .toLowerCase();
-
-    return CATEGORY_ICONS[category] || "🛒";
-}
-
-// Product price
-function getProductPrice(product) {
-    const price =
-        product?.today ??
-        product?.price ??
-        product?.todayPrice ??
-        product?.today_price ??
-        product?.currentPrice ??
-        product?.current_price;
-
-    if (
-        price === null ||
-        price === undefined ||
-        price === "" ||
-        !Number.isFinite(Number(price))
-    ) {
-        return null;
-    }
-
-    return Number(price);
-}
-
-// Unit বাংলায় দেখানো
-function getUnit(unit) {
-    const units = {
-        kg: "কেজি",
-        litre: "লিটার",
-        liter: "লিটার",
-        dozen: "ডজন",
-        piece: "টি",
-    };
-
-    return units[String(unit || "").toLowerCase()] || unit || "";
-}
+// সর্বোচ্চ ৩২টি পণ্য দেখাও (গ্রিড পরিচ্ছন্ন রাখতে)
+const DISPLAY_LIMIT = 32;
 
 export default function AllProducts() {
-    const [products, setProducts] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
+    const { products, loading, error, reload } = useProducts();
 
-    useEffect(() => {
-        let active = true;
-
-        async function fetchProducts() {
-            try {
-                setLoading(true);
-                setError("");
-
-                const response = await fetch(API_URL, {
-                    cache: "no-store",
-                });
-
-                if (!response.ok) {
-                    throw new Error("পণ্যের তথ্য লোড করা যায়নি।");
-                }
-
-                const result = await response.json();
-
-                const productList = Array.isArray(result)
-                    ? result
-                    : Array.isArray(result?.products)
-                        ? result.products
-                        : Array.isArray(result?.data)
-                            ? result.data
-                            : Array.isArray(result?.data?.products)
-                                ? result.data.products
-                                : [];
-
-                if (active) {
-                    // সর্বোচ্চ ৩২টি পণ্য দেখাবে
-                    setProducts(productList.slice(0, 32));
-
-                    if (productList.length === 0) {
-                        setError("কোনো পণ্য পাওয়া যায়নি।");
-                    }
-                }
-            } catch (err) {
-                if (active) {
-                    setError(
-                        err.message ||
-                        "পণ্য লোড করতে সমস্যা হয়েছে।"
-                    );
-                }
-            } finally {
-                if (active) {
-                    setLoading(false);
-                }
-            }
-        }
-
-        fetchProducts();
-
-        return () => {
-            active = false;
-        };
-    }, []);
+    const total = products.length;
+    const visibleProducts = products.slice(0, DISPLAY_LIMIT);
 
     return (
         <section
@@ -194,10 +30,7 @@ export default function AllProducts() {
                 {/* Heading */}
                 <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
                     <div>
-                        <p className="mb-2 text-sm font-semibold text-green-700">
-                            বাজারদর
-                        </p>
-
+                        
                         <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl">
                             আজকের পণ্যের দাম
                         </h2>
@@ -207,9 +40,9 @@ export default function AllProducts() {
                         </p>
                     </div>
 
-                    {!loading && !error && (
+                    {!loading && !error && total > 0 && (
                         <span className="rounded-full bg-green-100 px-4 py-2 text-sm font-medium text-green-800">
-                            মোট {toBanglaNumber(products.length)} টি পণ্য
+                            মোট {toBanglaNumber(total)} টি পণ্য
                         </span>
                     )}
                 </div>
@@ -237,7 +70,7 @@ export default function AllProducts() {
 
                         <button
                             type="button"
-                            onClick={() => window.location.reload()}
+                            onClick={reload}
                             className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700"
                         >
                             আবার চেষ্টা করুন
@@ -246,9 +79,9 @@ export default function AllProducts() {
                 )}
 
                 {/* Product Cards */}
-                {!loading && !error && products.length > 0 && (
+                {!loading && !error && visibleProducts.length > 0 && (
                     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-                        {products.map((product, index) => {
+                        {visibleProducts.map((product, index) => {
                             const productName = getProductName(product);
                             const icon = getProductIcon(product);
                             const price = getProductPrice(product);
@@ -319,7 +152,7 @@ export default function AllProducts() {
                 )}
 
                 {/* Empty */}
-                {!loading && !error && products.length === 0 && (
+                {!loading && !error && total === 0 && (
                     <div className="rounded-xl border border-gray-200 bg-white p-8 text-center text-gray-600">
                         কোনো পণ্য পাওয়া যায়নি।
                     </div>

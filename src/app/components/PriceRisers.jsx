@@ -1,202 +1,24 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getProductSlug } from "./priceUtils";
+import { useProducts } from "@/lib/useProducts";
+import {
+    toBanglaNumber,
+    getProductSlug,
+    getProductName,
+    getProductIcon,
+    getProductPrice,
+    getUnit,
+    formatPrice,
+} from "./productMeta";
 
-const API_URL = "/api/products";
-
-// Category অনুযায়ী Emoji
-const CATEGORY_ICONS = {
-    chal: "🍚",
-    dal: "🌾",
-    tel: "🧴",
-    sobji: "🥬",
-    mach: "🐟",
-    mangsho: "🍗",
-    "dim-dui": "🥚",
-    mosla: "🌶️",
-};
-
-// Product অনুযায়ী Emoji
-const PRODUCT_ICONS = {
-    peyaj: "🧅",
-    begun: "🍆",
-    ada: "🌿",
-    roshun: "🧄",
-    alu: "🥔",
-    "kaccha-moric": "🌶️",
-    "rui-mach": "🐟",
-    "ilish-mach": "🐠",
-    "katla-mach": "🐠",
-    "chingri-mach": "🦐",
-    "goru-r-mangsho": "🥩",
-    "khasir-mangsho": "🍖",
-    "hanser-mangsho": "🦆",
-    "murgi-r-mangsho": "🍗",
-    dim: "🥚",
-    "dui-dudh": "🥛",
-    doi: "🥣",
-    mokhhan: "🧈",
-    "sorno-machi-chal": "🍚",
-    "miniket-chal": "🍚",
-    "nazir-chal": "🍚",
-    "batam-size-chal": "🍚",
-    "mosur-dal": "🌾",
-    "mug-dal": "🌾",
-    "chola-dal": "🌾",
-    "aman-dal-khosasila": "🌾",
-    "sorishar-tel": "🧴",
-    "pam-tel": "🧴",
-    "ghani-banga-sorishar-tel": "🧴",
-    "morich-gunda": "🌶️",
-    "dhanepata-gunda": "🌿",
-};
-
-// বাংলা সংখ্যা ও comma format
-function toBanglaNumber(value) {
-    if (value === null || value === undefined || value === "") {
-        return "";
-    }
-
-    return String(value).replace(/\d/g, (digit) =>
-        "০১২৩৪৫৬৭৮৯"[Number(digit)]
-    );
-}
-
-// Product name
-function getProductName(product) {
-    return (
-        product?.nameBn ||
-        product?.name ||
-        product?.title ||
-        "পণ্য"
-    );
-}
-
-// Product emoji
-function getProductIcon(product) {
-    const slug = String(product?.slug || "")
-        .trim()
-        .toLowerCase();
-
-    if (PRODUCT_ICONS[slug]) {
-        return PRODUCT_ICONS[slug];
-    }
-
-    const category = String(product?.category || "")
-        .trim()
-        .toLowerCase();
-
-    return CATEGORY_ICONS[category] || "🛒";
-}
-
-// Price
-function getProductPrice(product) {
-    const value =
-        product?.today ??
-        product?.price ??
-        product?.todayPrice ??
-        product?.today_price ??
-        product?.currentPrice ??
-        product?.current_price;
-
-    if (
-        value === null ||
-        value === undefined ||
-        value === "" ||
-        !Number.isFinite(Number(value))
-    ) {
-        return null;
-    }
-
-    return Number(value);
-}
-
-// Price format: 1,850 → ১,৮৫০
-function formatPrice(value) {
-    if (value === null) {
-        return "দাম পাওয়া যায়নি";
-    }
-
-    const formatted = Number(value).toLocaleString("en-IN", {
-        maximumFractionDigits: 2,
-    });
-
-    return `${toBanglaNumber(formatted)} টাকা`;
-}
-
-// Unit
-function getUnit(unit) {
-    const units = {
-        kg: "কেজি",
-        litre: "লিটার",
-        liter: "লিটার",
-        dozen: "ডজন",
-        piece: "পিস",
-    };
-
-    return units[String(unit || "").toLowerCase()] || unit || "একক";
-}
+// দাম বাড়া পণ্য: বেশি percentage আগে, সর্বোচ্চ ৬টি
+const RISING_LIMIT = 6;
 
 export default function PriceRisers() {
-    const [products, setProducts] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
+    const { products, loading, error, reload } = useProducts();
 
-    useEffect(() => {
-        let isMounted = true;
-
-        async function fetchProducts() {
-            try {
-                setLoading(true);
-                setError("");
-
-                const response = await fetch(API_URL, {
-                    cache: "no-store",
-                });
-
-                if (!response.ok) {
-                    throw new Error("পণ্যের তথ্য লোড করা যায়নি।");
-                }
-
-                const data = await response.json();
-
-                const productList = Array.isArray(data)
-                    ? data
-                    : Array.isArray(data?.products)
-                        ? data.products
-                        : Array.isArray(data?.data)
-                            ? data.data
-                            : Array.isArray(data?.data?.products)
-                                ? data.data.products
-                                : [];
-
-                if (isMounted) {
-                    setProducts(productList);
-                }
-            } catch (err) {
-                if (isMounted) {
-                    setError(
-                        err.message || "পণ্য লোড করতে সমস্যা হয়েছে।"
-                    );
-                }
-            } finally {
-                if (isMounted) {
-                    setLoading(false);
-                }
-            }
-        }
-
-        fetchProducts();
-
-        return () => {
-            isMounted = false;
-        };
-    }, []);
-
-    // দাম বাড়া পণ্য: বেশি percentage আগে, সর্বোচ্চ ৬টি
     const risingProducts = products
         .filter(
             (product) =>
@@ -208,7 +30,7 @@ export default function PriceRisers() {
             (a, b) =>
                 Number(b.change.pct) - Number(a.change.pct)
         )
-        .slice(0, 6);
+        .slice(0, RISING_LIMIT);
 
     return (
         <section
@@ -260,7 +82,7 @@ export default function PriceRisers() {
 
                         <button
                             type="button"
-                            onClick={() => window.location.reload()}
+                            onClick={reload}
                             className="ml-3 font-semibold underline"
                         >
                             আবার চেষ্টা করুন

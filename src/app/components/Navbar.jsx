@@ -15,7 +15,7 @@ const DEFAULT_CATEGORIES = [
     { name: "সবজি", icon: "🥬", slug: "sobji" },
     { name: "মাছ", icon: "🐟", slug: "mach" },
     { name: "মাংস", icon: "🍗", slug: "mangsho" },
-    { name: "ডিম-মধু", icon: "🥚", slug: "dim" },
+    { name: "ডিম-দুধ", icon: "🥚", slug: "dim-dui" },
     { name: "মসলা", icon: "🌶️", slug: "mosla" },
 ];
 
@@ -208,10 +208,13 @@ export default function Navbar() {
                                     className="flex items-center gap-2 rounded-xl px-2 py-2 transition hover:bg-green-50 sm:gap-3 sm:px-3"
                                 >
                                     {profileImage ? (
-                                        <img
+                                        <Image
                                             src={profileImage}
                                             alt={session.user.name || "User"}
+                                            width={36}
+                                            height={36}
                                             referrerPolicy="no-referrer"
+                                            unoptimized
                                             className="h-9 w-9 rounded-full object-cover"
                                         />
                                     ) : (

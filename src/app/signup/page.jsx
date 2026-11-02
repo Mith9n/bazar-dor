@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { signUp, signIn } from "@/lib/auth-client";
+import { signUp, signIn, getCallbackURL } from "@/lib/auth-client";
+import CallbackLink from "../components/CallbackLink";
 import toast from "react-hot-toast";
 import { Eye, EyeOff } from "lucide-react";
 
@@ -68,7 +69,7 @@ export default function SignupPage() {
         setLoading(true);
 
         try {
-            const { error } = await signUp.email({
+            const { data, error } = await signUp.email({
                 name,
                 email,
                 password,
@@ -80,7 +81,24 @@ export default function SignupPage() {
             }
 
             toast.success("অ্যাকাউন্ট সফলভাবে তৈরি হয়েছে!");
-            window.setTimeout(() => router.push("/signin"), 800);
+
+            const callbackURL = getCallbackURL("/");
+
+            // better-auth সাইন আপের সাথে সাথেই সেশন তৈরি করে —
+            // তাই ব্যবহারকারীকে সরাসরি সে যে পাতা দেখছিল সেখানে পাঠাও।
+            if (data?.token) {
+                router.push(callbackURL);
+                router.refresh();
+            } else {
+                // ইমেইল ভেরিফিকেশন বাধ্য থাকলে আগে লগইন করতে হবে
+                router.push(
+                    callbackURL === "/"
+                        ? "/signin"
+                        : `/signin?callbackURL=${encodeURIComponent(
+                            callbackURL
+                        )}`
+                );
+            }
         } catch (err) {
             setError("কিছু সমস্যা হয়েছে। আবার চেষ্টা করুন।");
         } finally {
@@ -94,7 +112,7 @@ export default function SignupPage() {
         try {
             await signIn.social({
                 provider,
-                callbackURL: "/",
+                callbackURL: getCallbackURL("/"),
             });
         } catch (err) {
             setError("সোশ্যাল লগইন ব্যর্থ হয়েছে।");
@@ -263,12 +281,12 @@ export default function SignupPage() {
                     <p className="mt-7 text-center text-sm text-gray-600">
                         ইতিমধ্যে অ্যাকাউন্ট আছে?{" "}
 
-                        <Link
+                        <CallbackLink
                             href="/signin"
                             className="font-bold text-green-600 hover:text-green-700"
                         >
                             লগইন করুন
-                        </Link>
+                        </CallbackLink>
                     </p>
 
                 </div>

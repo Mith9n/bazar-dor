@@ -12,3 +12,21 @@ export const {
     signOut,
     useSession,
 } = authClient;
+
+/**
+ * লগইনের পর ব্যবহারকারী যেন সেই পাতায়ই ফিরে যান যেটা সে দেখছিল।
+ * শুধু নিজের সাইটের পাথ গ্রহণ করে — বাইরের লিংকে রিডাইরেক্ট ঠেকাতে।
+ */
+export function getCallbackURL(fallback = "/") {
+    if (typeof window === "undefined") return fallback;
+
+    const value = new URLSearchParams(window.location.search).get(
+        "callbackURL"
+    );
+
+    if (!value || !value.startsWith("/") || value.startsWith("//")) {
+        return fallback;
+    }
+
+    return value;
+}

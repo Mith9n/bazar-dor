@@ -1,23 +1,32 @@
-import { NextResponse, connection } from "next/server";
+
+import { NextResponse } from "next/server";
+import { unstable_rethrow } from "next/navigation";
+import { cacheLife } from "next/cache";
 
 const API_URL = "https://api.abcz.workers.dev/api/bazardor/categories";
 
+/**
+ * Cache Components চালু থাকায় `next: { revalidate }` বদলে `use cache` ব্যবহার করতে হয়।
+ * `use cache` রাউট হ্যান্ডলারের ভেতরে সরাসরি বসানো যায় না — তাই আলাদা ফাংশনে রাখা।
+ */
+async function fetchUpstreamCategories() {
+    "use cache";
+    cacheLife("minutes");
+
+    const response = await fetch(API_URL);
+
+    if (!response.ok) {
+        throw new Error(
+            `Categories API failed with status ${response.status}`
+        );
+    }
+
+    return response.json();
+}
+
 export async function GET() {
-    await connection();
-
     try {
-        const response = await fetch(API_URL, {
-            next: { revalidate: 60 },
-        });
-
-        if (!response.ok) {
-            return NextResponse.json(
-                { error: "Categories API failed" },
-                { status: response.status }
-            );
-        }
-
-        const data = await response.json();
+        const data = await fetchUpstreamCategories();
 
         if (!Array.isArray(data)) {
             throw new Error("Categories API returned invalid data");
@@ -25,6 +34,9 @@ export async function GET() {
 
         return NextResponse.json(data);
     } catch (error) {
+        // Next.js-এর নিজস্ব প্রিরেন্ডার সিগন্যাল ধরে রাখা যাবে না
+        unstable_rethrow(error);
+
         console.error("Categories API error:", error);
 
         return NextResponse.json(
